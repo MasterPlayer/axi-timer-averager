@@ -1,37 +1,89 @@
-#pragma once
-
-#include <stdint.h>
-#include <stdio.h>
-#include <xil_types.h>
+#include "axi_timer_avg.h"
 
 
 
-typedef struct {
-	uint32_t stop_reg;
-	uint32_t average_ctrl_reg;
-	uint32_t avg_msmt_value_lsb_reg;
-	uint32_t avg_msmt_value_msb_reg;
-	uint32_t msmt_count
-} timer_avg;
+int axi_timer_avg_init(axi_timer_avg *ptr, uint32_t baseaddress){
+	ptr->timer = (timer_avg*)baseaddress;
+
+	ptr->init = 1;
+
+	return TIMER_OK;
+
+}
 
 
 
+int axi_timer_avg_stop(axi_timer_avg *ptr){
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
 
-#define STOP_REG_STOP_MASK                  0x00000001
+	timer_avg_stop(ptr->timer);
 
-#define AVERAGE_CTRL_REG_AVG_MSMT_ENABLE_MASK 	0x00000001
-#define AVERAGE_CTRL_REG_AVG_MSMT_LIMIT_MASK 	0x00001F00
+	return TIMER_OK;
+}
 
-#define timer_avg_stop(ptr) ((ptr)->stop_reg |= STOP_REG_STOP_MASK)
 
-#define timer_avg_msmt_enable(ptr) ((ptr)->average_ctrl_reg |= AVERAGE_CTRL_REG_AVG_MSMT_ENABLE_MASK)
-#define timer_avg_has_msmt_enabled(ptr) ((ptr)->average_ctrl_reg & AVERAGE_CTRL_REG_AVG_MSMT_ENABLE_MASK) ? TRUE : FALSE
 
-#define timer_avg_set_msmt_limit(ptr, value) ((ptr)->average_ctrl_reg = ((ptr)->average_ctrl_reg & ~AVERAGE_CTRL_REG_AVG_MSMT_LIMIT) | ( (value << 8) & AVERAGE_CTRL_REG_AVG_MSMT_LIMIT))
-#define timer_avg_get_msmt_limit(ptr) (((ptr)->average_ctrl_reg & AVERAGE_CTRL_REG_AVG_MSMT_LIMIT_MASK) >> 8)
+int axi_timer_avg_has_msmt_enabled(axi_timer_avg *ptr){
+	return (timer_avg_has_msmt_enabled(ptr->timer));
+}
 
-#define timer_avg_get_avg_value_lsb(ptr) ((ptr)->avg_msmt_value_lsb_reg)
 
-#define timer_avg_get_avg_value_msb(ptr) ((ptr)->avg_msmt_value_msb_reg)
 
-#define timer_avg_get_msmt_count(ptr) ((ptr)->msmt_count)
+int axi_timer_avg_msmt_enable(axi_timer_avg *ptr){
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
+
+	timer_avg_msmt_enable(ptr->timer);
+
+	return TIMER_OK;
+}
+
+
+int axi_timer_avg_get_msmt_limit(axi_timer_avg *ptr, uint32_t *msmt_limit){
+
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
+
+	*msmt_limit = timer_avg_get_msmt_limit(ptr->timer);
+
+	return TIMER_OK;
+}
+
+
+int axi_timer_avg_set_msmt_limit(axi_timer_avg *ptr, uint32_t msmt_limit){
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
+
+	timer_avg_set_msmt_limit(ptr->timer, msmt_limit);
+
+	return TIMER_OK;
+}
+
+
+int axi_timer_avg_get_avg_value(axi_timer_avg *ptr, uint64_t *avg_value){
+
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
+
+	*avg_value = ((uint64_t)timer_avg_get_avg_value_lsb(ptr->timer)) + ((uint64_t)timer_avg_get_avg_value_msb(ptr->timer) << 32);
+
+	return TIMER_OK;
+}
+
+
+int axi_timer_avg_get_msmt_count(axi_timer_avg *ptr, uint32_t *msmt_count){
+
+	if (!axi_timer_avg_has_init(ptr)){
+		return TIMER_UNINIT;
+	}
+
+	*msmt_count = timer_avg_get_msmt_count(ptr->timer);
+
+	return TIMER_OK;
+}
